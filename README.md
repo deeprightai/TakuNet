@@ -1,4 +1,3 @@
-
 <div align="center">
 
 # __TakuNet__: an Energy-Efficient CNN for Real-Time Inference on Embedded UAV systems in Emergency Response Scenarios
@@ -21,9 +20,13 @@ University of Modena and Reggio Emilia, Italy
 1. [Introduction](#introduction)
 2. [Installation](#installation)
 3. [Usage](#usage)
-4. [Additional Information](#additional-information)
-5. [Citation](#citation)
-6. [License](#license)
+4. [Inference Scripts](#inference-scripts)
+   - [Single Image Inference](#single-image-inference)
+   - [Batch Image Inference](#batch-image-inference)
+5. [Inference on Edge Devices](#inference-on-edge-devices)
+6. [Additional Information](#additional-information)
+7. [Citation](#citation)
+8. [License](#license)
 
 
 ## Introduction 🎙
@@ -31,7 +34,7 @@ TakuNet is a convolutional architecture designed to be extremely efficient when 
 
 <div align="center">
 
-![Model performance evaluation on embedded platforms. The fps were calculated by taking the mean latency value over multiple runs of the model with batch size 1. TakuNet’s fps on Jetson Orin are obtained after TensorRT optimization.](media/eval-on-embedded.png)
+![Model performance evaluation on embedded platforms. The fps were calculated by taking the mean latency value over multiple runs of the model with batch size 1. TakuNet's fps on Jetson Orin are obtained after TensorRT optimization.](media/eval-on-embedded.png)
 
 </div>
 
@@ -93,6 +96,13 @@ On the other hand, experiments on Raspberry Pi(s) were conducted through the doc
     # run the container and mount a directory (e.g. the one which contains the dataset). Here you will find AIDER in /home/user/AIDER
     ./run -d /home/your-username/path-to-data/AIDER
     ```
+
+### Required Python Packages 📦
+For standalone installations without Docker, ensure you have the following Python packages installed:
+
+```bash
+pip install torch torchvision opencv-python matplotlib numpy pillow
+```
 
 ## Usage 🧰
 The execution interface is really simple, it consists of a bash script which launches the main.py script, automatically loading the arguments and configurations specified in TakuNet's configuration file: `configs/TakuNet.yml`.
@@ -189,7 +199,107 @@ cd src
 
 </details>
 
-### Inference on Edge Devices 🔋
+## Inference Scripts 🔮
+
+TakuNet provides two different inference scripts for evaluating the model on test images:
+
+### Single Image Inference
+
+The `singleimage_inference.py` script allows you to process individual images and visualize the results.
+
+**Usage:**
+```bash
+python src/singleimage_inference.py --image path/to/image.jpg --checkpoint src/ckpts/TakuNet_AIDERV2.ckpt --visualize
+```
+
+**Arguments:**
+- `--image` (required): Path to the input image
+- `--checkpoint` (required): Path to the model checkpoint
+- `--width` (optional, default=224): Image width for processing
+- `--height` (optional, default=224): Image height for processing
+- `--visualize` (optional flag): Display visualization of results
+
+**Example with included checkpoints:**
+```bash
+# Process a single image from the Test directory using the AIDERV2 checkpoint
+python src/singleimage_inference.py --image src/Test/Flood/image_265.png --checkpoint src/ckpts/TakuNet_AIDERV2.ckpt --visualize
+
+# Process a single image using the AIDER checkpoint
+python src/singleimage_inference.py --image src/Test/Fire/image_123.png --checkpoint src/ckpts/TakuNet_AIDER.ckpt --visualize
+```
+
+The script will output the predicted disaster class and confidence scores for each category (Earthquake, Fire, Flood, Normal).
+
+### Batch Image Inference
+
+The `batch_image_inference.py` script processes multiple images from test directories, creates visualizations, and compiles them into a video.
+
+**Usage:**
+```bash
+python src/batch_image_inference.py --checkpoint src/ckpts/TakuNet_AIDERV2.ckpt --test_dir src/Test --output_dir predictions_results
+```
+
+**Arguments:**
+- `--test_dir` (optional, default='src/Test'): Directory containing test images organized in class folders
+- `--checkpoint` (required): Path to the model checkpoint file
+- `--output_dir` (optional, default='predictions_results'): Directory to save results
+- `--num_images` (optional, default=20): Number of random images to select
+- `--width` (optional, default=224): Image width for processing
+- `--height` (optional, default=224): Image height for processing
+
+**Example with included checkpoints:**
+```bash
+# Process 20 random images using the AIDERV2 checkpoint
+python src/batch_image_inference.py --checkpoint src/ckpts/TakuNet_AIDERV2.ckpt --test_dir src/Test --output_dir predictions_results
+
+# Process 50 random images using the AIDER checkpoint
+python src/batch_image_inference.py --checkpoint src/ckpts/TakuNet_AIDER.ckpt --test_dir src/Test --output_dir predictions_results --num_images 50
+```
+
+**Test Data Structure:**
+The repository includes a test dataset organized in the `src/Test` directory with the following structure:
+```
+src/Test/
+  ├── Earthquake/
+  │   └── [earthquake images]
+  ├── Fire/
+  │   └── [fire disaster images]
+  ├── Flood/
+  │   └── [flood disaster images]
+  └── Normal/
+      └── [non-disaster images]
+```
+
+**What the script does:**
+1. Randomly selects images from the test directory across all disaster class folders
+2. Processes each image through the TakuNet model
+3. Creates visualizations showing:
+   - The original image with true and predicted labels
+   - A bar chart of confidence scores for each class
+4. Saves individual visualizations to the output directory
+5. Compiles all visualizations into an MP4 video for easy viewing
+6. Calculates and displays accuracy statistics
+
+**Understanding the Results:**
+After running the batch inference script, you'll find the following in your output directory (default: `predictions_results`):
+
+1. **Individual Result Images**: Files named `result_XXX.png` contain:
+   - Left side: Original image with true class and predicted class labels
+   - Right side: Bar chart showing confidence scores for each class
+   
+2. **Video Summary**: `results_video.mp4` compiles all visualization images into a single video file for easy viewing and sharing
+
+3. **Console Output**: Displays a summary of the processing including:
+   - Number of images found and processed
+   - Accuracy metrics (percentage of correctly classified images)
+
+**Available Checkpoints:**
+The repository includes two pre-trained model checkpoints:
+
+1. `src/ckpts/TakuNet_AIDER.ckpt`: Model trained on the AIDER dataset
+2. `src/ckpts/TakuNet_AIDERV2.ckpt`: Model trained on the AIDERV2 dataset (recommended)
+
+## Inference on Edge Devices 🔋
 Embedded device inference scripts are located in the `embedded` folder, and require a proper configuration for each specific target device. The main configuration file is located in `embedded/configs/TakuNet.yml`. 
 ```
 cd src
@@ -229,6 +339,29 @@ Embedded devices require a stable input voltage to operate effectively. Improper
 To maximize the performance of embedded devices, it is recommended to stop any application or service that may interfere with their operation. These can introduce unnecessary overhead or cause resource contention, potentially impacting the efficiency and responsiveness of the devices.
 
 For optimal performance with TakuNet, we recommend performing a fresh OS installation. Furthermore, active termal cooling should be installed (if not already present) to avoid thermal throttling.
+</details>
+
+<details>
+  <summary><b>Troubleshooting Common Issues</b></summary>
+
+- **Missing Python Libraries**: If you encounter errors about missing libraries, install them using pip:
+  ```bash
+  pip install torch torchvision opencv-python matplotlib numpy pillow
+  ```
+
+- **Path Resolution Problems**: When running the batch inference script, make sure your directory paths are correct. If you're running from the root directory of the project, use `src/Test` for the test directory. If you're already in the `src` directory, use just `Test`.
+
+- **CUDA/GPU Issues**: If you encounter CUDA-related errors, check that your GPU drivers are up-to-date and that PyTorch is installed with CUDA support. You can check this with:
+  ```python
+  import torch
+  print(torch.cuda.is_available())
+  ```
+
+- **Visualization Not Working**: If visualizations aren't displaying properly, ensure matplotlib is correctly installed and that you're using a non-interactive backend when running in environments without a display:
+  ```python
+  import matplotlib
+  matplotlib.use('Agg')  # Use non-interactive backend
+  ```
 </details>
 
 ## Citation 📝
